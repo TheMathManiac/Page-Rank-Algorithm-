@@ -1,0 +1,357 @@
+import pandas as pd
+import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import normalize
+from numpy import linalg as LA
+from scipy import linalg as linalg
+
+############################################################################################################################################################################
+
+#We import the season data with relevant data columns
+seasondata1 = pd.read_csv(r'/Users/rickteeuwissen/OR2/prem season 2012-2013.csv',delimiter=',',usecols=['HomeTeam','AwayTeam','FTHG', 'FTAG'], low_memory=False,index_col=False)
+seasondata2 = pd.read_csv(r'/Users/rickteeuwissen/OR2/prem season 2013-2014.csv',delimiter=',',usecols=['HomeTeam','AwayTeam','FTHG', 'FTAG'], skiprows=0, low_memory=False,index_col=False)
+seasondata3 = pd.read_csv(r'/Users/rickteeuwissen/OR2/prem season 2014-2015.csv',delimiter=',',usecols=['HomeTeam','AwayTeam','FTHG', 'FTAG'], skiprows=0, low_memory=False,index_col=False)
+seasondata4 = pd.read_csv(r'/Users/rickteeuwissen/OR2/prem season 2015-2016.csv',delimiter=',',usecols=['HomeTeam','AwayTeam','FTHG', 'FTAG'], skiprows=0, low_memory=False,index_col=False)
+seasondata5 = pd.read_csv(r'/Users/rickteeuwissen/OR2/prem season 2016-2017.csv',delimiter=',',usecols=['HomeTeam','AwayTeam','FTHG', 'FTAG'], skiprows=0, low_memory=False,index_col=False)
+seasondata6 = pd.read_csv(r'/Users/rickteeuwissen/OR2/prem season 2017-2018.csv',delimiter=',',usecols=['HomeTeam','AwayTeam','FTHG', 'FTAG'], skiprows=0, low_memory=False,index_col=False)
+seasondata7 = pd.read_csv(r'/Users/rickteeuwissen/OR2/prem season 2018-2019.csv',delimiter=',',usecols=['HomeTeam','AwayTeam','FTHG', 'FTAG'], skiprows=0, low_memory=False,index_col=False)
+seasondata8 = pd.read_csv(r'/Users/rickteeuwissen/OR2/prem season 2019-2020.csv',delimiter=',',usecols=['HomeTeam','AwayTeam','FTHG', 'FTAG'], skiprows=0, low_memory=False,index_col=False)
+seasondata9 = pd.read_csv(r'/Users/rickteeuwissen/OR2/prem season 2020-2021.csv',delimiter=',',usecols=['HomeTeam','AwayTeam','FTHG', 'FTAG'], skiprows=0, low_memory=False,index_col=False)
+seasondata10 = pd.read_csv(r'/Users/rickteeuwissen/OR2/prem season 2021-2022.csv',delimiter=',',usecols=['HomeTeam','AwayTeam','FTHG','FTAG'], skiprows=0, low_memory=False,index_col=False)
+
+# We stack the seasons sequentially, and vertically with numpu.vstack into a single list
+list_of_seasons= np.vstack([seasondata1.values,seasondata2.values,seasondata3.values,seasondata4.values,seasondata5.values,seasondata6.values,seasondata7.values,seasondata8.values,seasondata9.values,seasondata10.values])
+
+# We define a panda.dataframe object with the season data and respective columns. We also drop n.a.n values.
+df_seasons = pd.DataFrame(list_of_seasons, columns = ['HomeTeam','AwayTeam','FTHG','FTAG']).dropna()
+
+# We define a list of the different teams that have played in the premier leaugue. 
+list_of_teams = df_seasons['HomeTeam'].tolist()
+list_of_teams = list(dict.fromkeys(list_of_teams))
+
+# we define a list of the season files
+season_name = [seasondata1, seasondata2, seasondata3, seasondata4, seasondata5, seasondata6, seasondata7, seasondata8, seasondata9, seasondata10]
+
+# we define the total number of games
+total_games = len(df_seasons) / len(dataList)
+
+############################################################################################################################################################################
+
+def calculate_season(team, season_name, total_games):
+    """
+    Purpose: Calculate the number of seasons in the Premier League played by each team            
+    
+    Input:  team:        The team we are calculating the number of seasons for
+            season_name: A list containg our season data
+            total_game: The total number of games played across the 10 seasons
+    
+    Output: seasons: returns the number of seasons of team in the premier league.    
+            
+    """    
+    
+    # We initialize the season counter
+    seasons = 0
+    
+    # We loop through the seasons
+    for season in season_name:
+        
+        # We loop through the games
+        for i in range(int(total_games)):
+            
+            # If a team is in a season, we add a season to the season counter.
+            if team == season["HomeTeam"][i]:
+                seasons = seasons + 1
+                break
+                
+    # return the number of seasons            
+    return seasons
+    
+############################################################################################################################################################################
+
+def graphplotter(graph):
+    
+    """
+    Purpose: Graph the weighted and unweighted graph as a network            
+    
+    Input:  The Graph we are going to plot
+    Output: Shows a plot of graph.            
+    """    
+
+    plt.figure(figsize = (36,24), dpi = 120)
+    pos = nx.circular_layout(graph) 
+    nx.draw_networkx_nodes(graph, pos, node_size=250)
+    label = dict([((u,v,), f"{d['weight']:.2f}") for u,v,d in graph.edges(data=True)])
+    nx.draw_networkx_labels(graph, pos, font_size=10, font_family="sans-serif")
+    nx.draw_networkx_edges(graph, pos, width=1, connectionstyle='arc3, rad = 0.2')
+    nx.draw_networkx_edge_labels(graph,pos, label_pos=0.3,edge_labels=label, font_size= 7, rotate = False)
+    plt.show()
+
+def goals_and_wins(hometeam,awayteam, df_seasons):
+    
+    """
+    Purpose: Calculate the number of goals, goals conceded, wins,draws, losses and number of 
+    games for two teams in the premier league.          
+    
+    Input:  hometeam: The team playing at home
+            awayteam: The team playing away
+            df_seasons: The dataframe containing our data of 10 seasons of premier league results
+    
+    Output: goals: returns the number of goals of hometeam against awayteam in the premier league over 10 seasons.    
+            conceded: returns the number of goals conceded of hometeam against awayteam in the premier league over 10 seasons.
+            wins: returns the number of wins of hometeam against awayteam in the premier league over 10 seasons.
+            draw: returns the number of draws of hometeam against awayteam in the premier league over 10 seasons.
+            loss: returns the number of losses of hometeam against awayteam in the premier league over 10 seasons.
+            numberofgames: returns the number of games played between hometeam and awayteam in the premier league over 10 seasons.
+   
+   """    
+    
+    
+    #intial value for the goals, number of games played and conceded goals
+    goals = 0
+    numberofgames = 0
+    conceded = 0
+    
+    #intial value for the wins, losses and draws
+    wins = 0
+    loss = 0
+    draw = 0
+    
+    # We loop through the rows of the seasons
+    for row in df_seasons.itertuples():
+        
+       # If the home team is playing against the away team, we increase the number of games they played. 
+       # We add the goals of the hometeam scored, and the conceded goals of the hometeam are the goals of the awayteam
+        
+        if row.HomeTeam == hometeam and row.AwayTeam == awayteam:
+            goals =  goals + row.FTHG
+            conceded = conceded + row.FTAG
+            numberofgames += 1
+        
+        #If the home team is now the away team, we increase the number of games they played. 
+        #We add the away goals to the hometeam scored goals, and the conceded goals of the hometeam are the goals of the awayteam now playing at home.
+
+        if row.AwayTeam == hometeam and row.HomeTeam == awayteam:
+            numberofgames += 1
+            goals = goals + row.FTAG
+            conceded = conceded + row.FTHG
+        
+        #The hometeam wins when it had scored strictly more goals than the away team s.t. we increase the number of wins 
+        
+        if row.HomeTeam == hometeam and row.AwayTeam == awayteam and row.FTHG > row.FTAG:
+            wins += 1
+        
+        #Hometeam is now awayteam and vice versa. The hometeam wins when it had scored strictly more goals. 
+        if row.AwayTeam == hometeam and row.HomeTeam == awayteam and row.FTAG > row.FTHG:
+             wins += 1
+        
+        #The hometeam dras when it scores equal goals as the away team s.t. we increase the number of draws 
+        if row.HomeTeam == hometeam and row.AwayTeam == awayteam and row.FTHG == row.FTAG:
+            draw+= 1
+       
+        #Hometeam is now awayteam and vice versa. The hometeam wins draws if scores are equal.
+        if row.AwayTeam == hometeam and row.HomeTeam == awayteam and row.FTHG == row.FTAG:
+            draw+= 1
+        
+        #The hometeam loses when it had scored strictly less goals than the away team s.t. we increase the number of losses 
+        if row.HomeTeam == hometeam and row.AwayTeam == awayteam and row.FTHG < row.FTAG:
+            loss += 1
+        
+        #Hometeam is now awayteam and vice versa. The hometeam loses when it had scored strictly less goals.
+        if row.AwayTeam == hometeam and row.HomeTeam == awayteam and row.FTAG < row.FTHG:
+            loss += 1
+    
+    # return the updated values
+    return goals, conceded, numberofgames, wins, loss, draw   
+
+
+def weights(list_of_teams, df_seasons):
+    """
+    Purpose: Calculate the weights of a win of a team against another. We calculate the weighted network
+    and the corresponding adjacency matrix. We use the results of goals_and_wins to do this.
+             
+    Input:  list_of_teams: The list of every team that played in the premier legeau over 10 seasons
+            df_seasons: The dataframe containing our data of 10 seasons of premier league results
+    
+    Output: adjecencyMatrix: The adjacency matrix of the network.    
+            weighted_graph: The weighted network.        
+    """    
+    
+    # We define the weighted graph and add the teams as nodes
+    weighted_graph = nx.DiGraph()
+    weighted_graph.add_nodes_from(list_of_teams)
+
+    # We setup the matrix for the weights
+    adjecencyMatrix = np.zeros((len(list_of_teams),len(list_of_teams)))
+    
+    # We loop through the list of clubs
+    for homeclub in range(len(list_of_teams)):
+        
+        # We set a club equal to the team playing at home
+        hometeam = list_of_teams[homeclub]
+        numberofseasons = calculate_season(hometeam, season_name, total_games)
+        print(f' the number of seasons of {hometeam} is:{calculate_season(hometeam, season_name, total_games)}')
+    
+        # We loop throught the clubs again
+        for awayclub in range(len(list_of_teams)):
+            
+            # We select an away club
+            awayteam = list_of_teams[awayclub]
+            
+            # We require the homeclub to be a different club than the awayclub
+            if(homeclub != awayclub):
+                
+                #Calculate the important data of the games between the hometeam and the awayteam
+                goals = goals_and_wins(hometeam,awayteam, df_seasons)[0]
+                conceded = goals_and_wins(hometeam,awayteam, df_seasons)[1]
+                numberofgames = goals_and_wins(hometeam,awayteam, df_seasons)[2]
+                wins = goals_and_wins(hometeam,awayteam, df_seasons)[3]
+                loss = goals_and_wins(hometeam,awayteam, df_seasons)[4]
+                draw = goals_and_wins(hometeam,awayteam, df_seasons)[5]
+            
+                #To prevent division by 0 in the weight function 
+                if numberofgames == 0:
+                    break
+                
+                #Calculate the weight for the homeclub and awayclub and store it in a matrix
+                else:
+                   
+                    adjecencyMatrix[homeclub][awayclub]  = ((goals + conceded) / (1 + np.log(numberofseasons) * np.log(numberofgames))) * ((wins + 0.5 * draw) / (wins + draw + loss))
+                    edge =  ((goals + conceded) / (1 + np.log(numberofseasons) * np.log(numberofgames))) * ((wins + 0.5 * draw) / (wins + draw + loss))
+                    weighted_graph.add_edge(hometeam,awayteam, weight = edge)
+            
+                print(f' the number of goals of {hometeam} against {awayteam} is:{goals}')
+                print(f' the number of goals condeded of {hometeam} against {awayteam} is:{conceded}')
+                print(f' the number of wins of {hometeam} against {awayteam} is:{wins}')
+                print(f' the number of draws of {hometeam} against {awayteam} is:{draw}')
+                print(f'the number of losses of {hometeam} against {awayteam} is:{loss}')
+
+                
+    return adjecencyMatrix, weighted_graph
+
+# We define the adjecency matrix and weighted graph as outcome of the function weights.
+adjecency_matrix, weighted_graph = weights(list_of_teams, df_seasons)
+
+def normalize_graph(weighted_graph):
+    
+    """
+    Purpose: Calculate the normalized weights such that the sum of weight of outgoing links is equal to one.
+    Input:  weighted_graph: The weighted network
+            
+    Output: numb_nodes: The number of nodes in the normalized network.    
+            transition_graph: The normalized network.          
+   """    
+    
+    # networkx.stochastic_graph() calculates a normalized graph where the weights are rescaled s.t. the outgoing edges weights sum to 1
+    transition_graph = nx.stochastic_graph(weighted_graph, copy=True)
+    
+    # calculate the number of nodes in this network.
+    numb_nodes = transition_graph.number_of_nodes()
+    
+    return transition_graph, numb_nodes
+
+# We define the normalized network as outcome of the function normalize_graph.
+transition_graph = normalize_graph(weighted_graph)[0]
+
+# We define the number of nodes of the network as outcome of the function normalize_graph.
+numb_nodes = normalize_graph(weighted_graph)[1]
+
+# We plot the weighted network
+graphplotter(weighted_graph)
+
+# We plot the normalized network
+graphplotter(transition_graph)
+
+# We define the damping factor
+damping_factor = 0.15
+
+def ErgodicMatrix(adjecency_matrix, damping_factor, nump_nodes):
+    
+    """
+    Purpose: Calculate the transition matrix and transform it such that we obtain a matrix
+    that represents the ergodic network.
+    Input:  adjecencyMatrix: The adjacency matrix of the network.
+            damping_factor: The value of the damping factor that we used
+            numb_nodes: The number of nodes in the normalized network
+            
+    Output: Ergodic_Matrix: The ergodic matrix.    
+            TransitionMatrix: The transition matrix.          
+   """    
+    
+    # We calculate the transition matrix. We need the columns of the adjecency matrix to sum to 1:
+    TransitionMatrix = normalize(adjecency_matrix, axis = 1, norm ='l1')
+    
+    # We calculate the ergodix matrix:
+    Ergodic_Matrix = (1 - damping_factor) * (adjecency_matrix / adjecency_matrix.sum(axis = 0)) + (damping_factor / numb_nodes)
+    
+    #We return the transition matrix and the transition matrix.
+    return TransitionMatrix, Ergodic_Matrix
+
+# We let the transition matrix equal the outcome of the transitionMatrix function.
+transition_matrix = ErgodicMatrix(adjecency_matrix, damping_factor,numb_nodes)[0]
+ergodic_matrix = ErgodicMatrix(adjecency_matrix, damping_factor,numb_nodes)[1]
+
+print(f'The adjecency matrix is given by:\n {adjecency_matrix}')
+print(f'The transition matrix is given by:\n {transition_matrix}')
+print(f'The ergodic matrix is given by:\n {ergodic_matrix}')
+
+############################################################################################################################################################################
+
+def calculate_rank(ergodic_matrix, numb_nodes):
+    """
+    Purpose: Calculate the rank of the soccer teams based on the power method.
+    Input:  ergodic_matrix: The transition matrix that is made ergodic.
+            numb_nodes: The number of nodes in the normalized network
+            
+    Output: rank: The rank of each soccer team.   
+    """    
+
+    # We initialize the PageRank vector to be uniform
+    pi = np.empty(numb_nodes)
+    pi.fill( 1 / numb_nodes)
+    
+    # we need pi to be of the correct shape to obtain a vector after multiplying with the ergodic matrix
+    pi_transpose = np.matrix(pi).T
+
+    #We set the max number of iterations of the power method
+    max_iterations = 3
+    
+    # We set a convergence threshold
+    convergence_threshold = 0.001
+    
+    #We run the power method until we hit the max_iteration, or when the ergodic_matrix has converged within the error.
+    for i in range(max_iterations):
+        old_pi = pi_transpose
+        pi_transpose = ergodic_matrix * old_pi
+        if np.allclose(ergodic_matrix,pi_transpose,rtol = 0 , atol = convergence_threshold):
+            break
+    
+    rank = pi_transpose
+    # we check if the stationary distribution sums to one
+    print(sum(rank))    
+    
+    return rank
+
+rank = calculate_rank(ergodic_matrix, numb_nodes)
+print(rank)
+
+############################################################################################################################################################################
+
+def Page_Rank(rank, list_of_teams):
+    """
+    Purpose: Add and sort the soccer teams based on their rank from heigh to low in a dataframe .
+    Input:  rank: The rank of each soccer team..
+            list_of_teams: The list of every team that played in the premier legeau over 10 seasons
+            
+    Output: page_rank: The pagerank of the soccer teams.   
+                    
+   """    
+    
+    # Convert the PageRank vector to a dataframe and return it
+    page_rank = pd.DataFrame({'team': [team for team in list_of_teams], 'rank': np.ravel(rank)})
+    page_rank = page_rank.sort_values(by='rank', ascending=False).reset_index(drop=True)
+    return page_rank
+
+page_rank = Page_Rank(rank, list_of_teams)
+print(page_rank)
+
